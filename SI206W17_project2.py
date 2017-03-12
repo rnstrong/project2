@@ -1,8 +1,8 @@
 ## SI 206 W17 - Project 2 
 
 ## COMMENT HERE WITH:
-## Your name:
-## Anyone you worked with on this project:
+## Your name: Renee Armstrong
+## Anyone you worked with on this project: N/A
 
 ## Below we have provided import statements, comments to separate out the parts of the project, instructions/hints/examples, and at the end, tests. See the PDF of instructions for more detail. 
 ## You can check out the SAMPLE206project2_caching.json for an example of what your cache file might look like.
@@ -10,6 +10,7 @@
 ###########
 
 ## Import statements
+import re
 import unittest
 import json
 import requests
@@ -27,11 +28,21 @@ auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_token_secret)
 
 # Set up to be able grab stuff from twitter with your authentication using Tweepy methods, and return it in a JSON format 
+auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+auth.set_access_token(access_token, access_token_secret)
 api = tweepy.API(auth, parser=tweepy.parsers.JSONParser())
 
 ## Part 0 -- CACHING SETUP
 
 ## Write the code to begin your caching pattern setup here.
+CACHE_FNAME = "206project2_caching.json"
+try: 
+	cache_file = open(CACHE_FNAME, 'r')
+	cache_contents = cache_file.read()
+	CACHE_DICTION = json.loads(cache_contents)
+	cache_file.close()
+except:
+	CACHE_DICTION = {}
 
 
 
@@ -44,8 +55,9 @@ api = tweepy.API(auth, parser=tweepy.parsers.JSONParser())
 ## find_urls("http://www.google.com is a great site") should return ["http://www.google.com"]
 ## find_urls("I love looking at websites like http://etsy.com and http://instagram.com and stuff") should return ["http://etsy.com","http://instagram.com"]
 ## find_urls("the internet is awesome #worldwideweb") should return [], empty list
-
-
+def find_urls(string):
+	urls = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', string)
+	return urls
 
 
 
@@ -60,8 +72,25 @@ api = tweepy.API(auth, parser=tweepy.parsers.JSONParser())
 
 ## Start with this page: https://www.si.umich.edu/directory?field_person_firstname_value=&field_person_lastname_value=&rid=All  
 ## End with this page: https://www.si.umich.edu/directory?field_person_firstname_value=&field_person_lastname_value=&rid=All&page=11 
+def get_umsi_data():
 
-
+	if 'umsi_titles' in CACHE_DICTION:
+		return CACHE_DICTION['umsi_titles']
+	else:
+		page_data = []
+		response = requests.get('https://www.si.umich.edu/directory?field_person_firstname_value=&field_person_lastna me_value=&rid=All', headers={'User-Agent': 'SI_Class'})
+		html_doc = response.text
+		page_data.append(html_doc)
+		
+		for p in range(1, 12):
+			url = 'https://www.si.umich.edu/directory?field_person_firstname_value=&field_person_lastna me_value=&rid=All&page='+str(p)
+			response = requests.get(url, headers={'User-Agent': 'SI_CLASS'})
+			html_doc = response.text
+			page_data.append(html_doc)
+		
+		return page_data
+			
+print (get_umsi_data())
 
 
 
@@ -69,6 +98,14 @@ api = tweepy.API(auth, parser=tweepy.parsers.JSONParser())
 
 ## PART 2 (b) - Create a dictionary saved in a variable umsi_titles 
 ## whose keys are UMSI people's names, and whose associated values are those people's titles, e.g. "PhD student" or "Associate Professor of Information"...
+'''soup = BeautifulSoup(html_doc, "html.parser")
+			people = soup.findall("div",{"class":"views-row"})
+
+	
+			for person in people:
+				name_person = person.find('div', attrs={"class": "field-item even", "property":"dc:title"})
+				title = person.find('div', attrs={'class': "field field-name-field-person-titles field-type-text field-label-hidden"})
+				umsi_titles[name_person.find('h2').string] = title.string'''
 
 
 
