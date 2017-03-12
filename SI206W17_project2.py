@@ -47,6 +47,7 @@ except:
 
 
 
+
 ## PART 1 - Define a function find_urls.
 ## INPUT: any string
 ## RETURN VALUE: a list of strings that represents all of the URLs in the input string
@@ -74,41 +75,42 @@ def find_urls(string):
 ## End with this page: https://www.si.umich.edu/directory?field_person_firstname_value=&field_person_lastname_value=&rid=All&page=11 
 def get_umsi_data():
 
-	if 'umsi_titles' in CACHE_DICTION:
-		return CACHE_DICTION['umsi_titles']
+	if 'umsi_directory_data' in CACHE_DICTION:
+		return CACHE_DICTION['umsi_directory_data']
 	else:
-		page_data = []
-		response = requests.get('https://www.si.umich.edu/directory?field_person_firstname_value=&field_person_lastna me_value=&rid=All', headers={'User-Agent': 'SI_Class'})
-		html_doc = response.text
-		page_data.append(html_doc)
+		umsi_directory_data = []
+		page1 = requests.get('https://www.si.umich.edu/directory?field_person_firstname_value=&field_person_lastna me_value=&rid=All', headers={'User-Agent': 'SI_Class'})
+		umsi_directory_data.append(page1.text)
 		
 		for p in range(1, 12):
 			url = 'https://www.si.umich.edu/directory?field_person_firstname_value=&field_person_lastna me_value=&rid=All&page='+str(p)
 			response = requests.get(url, headers={'User-Agent': 'SI_CLASS'})
-			html_doc = response.text
-			page_data.append(html_doc)
-		
-		return page_data
+			umsi_directory_data.append(response.text)
+			CACHE_DICTION['umsi_directory_data']=umsi_directory_data
+			f = open('206project2_caching.json', 'w')
+			f.write(json.dumps(CACHE_DICTION))
+		return umsi_directory_data
 			
-print (get_umsi_data())
-
-
-
 
 
 ## PART 2 (b) - Create a dictionary saved in a variable umsi_titles 
 ## whose keys are UMSI people's names, and whose associated values are those people's titles, e.g. "PhD student" or "Associate Professor of Information"...
-'''soup = BeautifulSoup(html_doc, "html.parser")
-			people = soup.findall("div",{"class":"views-row"})
-
-	
-			for person in people:
-				name_person = person.find('div', attrs={"class": "field-item even", "property":"dc:title"})
-				title = person.find('div', attrs={'class': "field field-name-field-person-titles field-type-text field-label-hidden"})
-				umsi_titles[name_person.find('h2').string] = title.string'''
 
 
+##gunna have to iterate through each item in page_data (the return of get-umsi-data) and then make the soup
 
+
+umsi_titles = {}
+for page in get_umsi_data():
+	soup = BeautifulSoup(page, "html.parser")
+	people = soup.find_all("div",{"class":"views-row"})
+
+
+	for names in people:
+		name_person = names.find('div', attrs={"class": "field-item even", "property":"dc:title"})
+		title = names.find('div', attrs={'class': "field field-name-field-person-titles field-type-text field-label-hidden"})
+		
+		umsi_titles[name_person.find('h2').string] = title.string
 
 
 
@@ -118,17 +120,50 @@ print (get_umsi_data())
 ## Behavior: See instructions. Should search for the input string on twitter and get results. Should check for cached data, use it if possible, and if not, cache the data retrieved.
 ## RETURN VALUE: A list of strings: A list of just the text of 5 different tweets that result from the search.
 
+def get_five_tweets(string):
+	unique_identifier = 'twitter_{}'.format(string) 
+	
+	if unique_identifier in CACHE_DICTION:
+		twitter_results = CACHE_DICTION[unique_identifier]
+	
+	else:
+		twitter_results = api.search(q=string)
+		CACHE_DICTION[unique_identifier] = twitter_results
+		f = open('206project2_caching.json', 'w')
+		f.write(json.dumps(CACHE_DICTION))
+		f.close()
+	
+	tweets = []
+	for t in twitter_results['statuses']:
+		tweets.append(t['text'])
+	return tweets[:5]
+
+		
+
+		
+
+
+
+
+
+	
 
 
 
 ## PART 3 (b) - Write one line of code to invoke the get_five_tweets function with the phrase "University of Michigan" and save the result in a variable five_tweets.
 
-
+five_tweets = get_five_tweets('University of Michigan')
 
 
 ## PART 3 (c) - Iterate over the five_tweets list, invoke the find_urls function that you defined in Part 1 on each element of the list, and accumulate a new list of each of the total URLs in all five of those tweets in a variable called tweet_urls_found. 
 
-
+list_urls = []
+tweet_urls_found = []
+for t in five_tweets:
+	list_urls.append(find_urls(t))
+for l in list_urls:
+	for t in l:
+		tweet_urls_found.append(t)
 
 
 
